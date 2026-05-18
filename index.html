@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Nano Banana</title>
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f2f3f5;--white:#fff;--text:#1c1c1e;--dim:#8e8e93;--dim2:#c7c7cc;
+  --accent:#1a1a2e;--blue:#5b5ef4;--yellow:#f5e000;
+  --r:16px;--rs:12px;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+
+/* ── HEADER ── */
+.hdr{background:var(--white);padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.06);position:sticky;top:0;z-index:30}
+.hdr-logo{display:flex;align-items:center;gap:8px}
+.hdr-icon{width:32px;height:32px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.hdr-name{font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;color:var(--accent)}
+.hdr-bal{display:flex;align-items:center;gap:5px;background:var(--bg);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.hdr-bal span{color:var(--blue);font-weight:700}
+
+/* ── BOTTOM NAV ── */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid rgba(0,0,0,.07);display:flex;padding:8px 0 max(8px,env(safe-area-inset-bottom));z-index:30}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 0;color:var(--dim2);font-size:10px;font-weight:600;transition:color .15s}
+.bnav-btn.active{color:var(--blue)}
+.bnav-ico{font-size:22px;line-height:1}
+
+/* ── PAGES ── */
+.page{display:none;padding:0 0 90px}
+.page.active{display:block}
+
+/* ── HOME ── */
+.hero{background:linear-gradient(135deg,var(--accent) 0%,#2d2d5e 100%);padding:24px 16px 28px;color:#fff}
+.hero-title{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:900;line-height:1.2;margin-bottom:8px}
+.hero-title span{color:var(--yellow)}
+.hero-sub{font-size:13px;opacity:.75;line-height:1.5;margin-bottom:18px}
+.hero-btns{display:flex;gap:10px}
+.hero-btn{display:inline-flex;align-items:center;gap:6px;padding:11px 18px;border-radius:999px;font-weight:700;font-size:13px;border:none;cursor:pointer}
+.hero-btn-primary{background:var(--yellow);color:var(--accent)}
+.hero-btn-secondary{background:rgba(255,255,255,.15);color:#fff}
+
+/* Пилюли категорий */
+.cat-scroll{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;scrollbar-width:none;background:var(--white);border-bottom:1px solid rgba(0,0,0,.05);position:sticky;top:57px;z-index:20}
+.cat-scroll::-webkit-scrollbar{display:none}
+.cat-pill{flex-shrink:0;padding:7px 14px;border-radius:999px;border:1.5px solid var(--dim2);background:transparent;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;white-space:nowrap;transition:all .15s}
+.cat-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* Сетка карточек */
+.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px 0}
+.card{background:var(--white);border-radius:var(--r);overflow:hidden;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.07);transition:transform .15s;position:relative}
+.card:active{transform:scale(.97)}
+.card-img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:var(--bg)}
+.card-body{padding:10px 10px 12px}
+.card-title{font-size:13px;font-weight:700;margin-bottom:2px;line-height:1.3}
+.card-short{font-size:11px;color:var(--dim)}
+.card-emoji{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);border-radius:6px;padding:2px 7px;font-size:11px;color:#fff;font-weight:700}
+
+/* Состояния загрузки */
+.state-loading{padding:40px 16px;text-align:center;color:var(--dim);font-size:14px}
+.state-error{padding:40px 16px;text-align:center}
+.state-error-icon{font-size:40px;margin-bottom:12px}
+.state-error-text{font-size:14px;color:var(--dim);margin-bottom:16px}
+.retry-btn{background:var(--accent);color:#fff;border:none;border-radius:999px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer}
+
+/* ── СТИЛИ (каталог) ── */
+.sec-wrap{padding:18px 16px 0}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-title{font-size:17px;font-weight:700}
+
+/* ── СОЗДАТЬ ── */
+.gen-wrap{padding:16px 16px 0}
+.block{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.block-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+
+/* Переключатель режима */
+.mode-switch{display:flex;background:var(--bg);border-radius:var(--rs);padding:3px;margin-bottom:16px}
+.mode-btn{flex:1;padding:8px;border:none;border-radius:9px;background:transparent;font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--white);color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* Выбранная карточка стиля */
+.sel-card{background:var(--white);border-radius:var(--r);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:12px;display:flex}
+.sel-card img{width:90px;flex-shrink:0;object-fit:cover}
+.sel-card-info{padding:14px;flex:1}
+.sel-card-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.sel-card-desc{font-size:12px;color:var(--dim);margin-bottom:10px}
+.sel-card-change{font-size:12px;color:var(--blue);font-weight:600;background:none;border:none;cursor:pointer;padding:0}
+
+/* Промпт */
+.prompt-area{width:100%;min-height:100px;background:var(--bg);border:1.5px solid var(--dim2);border-radius:var(--rs);padding:12px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);resize:none;outline:none;transition:border-color .2s;line-height:1.5}
+.prompt-area:focus{border-color:var(--blue)}
+.prompt-area::placeholder{color:var(--dim2)}
+.prompt-hint{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.4}
+
+/* Upload */
+.upload-zone{border:2px dashed var(--dim2);border-radius:var(--rs);padding:20px;text-align:center;cursor:pointer;position:relative;transition:border-color .2s}
+.upload-zone:active{border-color:var(--blue)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-zone-icon{font-size:30px;margin-bottom:6px}
+.upload-zone-text{font-size:13px;color:var(--dim)}
+.upload-zone-hint{font-size:11px;color:var(--dim2);margin-top:3px}
+.upload-preview{position:relative;display:none}
+.upload-preview img{width:100%;max-height:180px;object-fit:cover;border-radius:var(--rs)}
+.upload-del{position:absolute;top:8px;right:8px;width:28px;height:28px;background:rgba(0,0,0,.6);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;border:none;cursor:pointer}
+
+/* Chips */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:999px;border:1.5px solid var(--dim2);background:transparent;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;transition:all .15s;white-space:nowrap}
+.chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* Gen btn */
+.gen-btn-wrap{position:fixed;bottom:70px;left:16px;right:16px;z-index:20}
+.gen-btn{width:100%;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-family:'Unbounded',sans-serif;font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(26,26,46,.3);transition:transform .1s,opacity .2s}
+.gen-btn:active{transform:scale(.98)}
+.gen-btn:disabled{opacity:.4;cursor:default}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+.gen-btn.loading .spinner{display:block}
+.gen-btn.loading .btxt{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── GALLERY ── */
+.gal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 0}
+.gal-item{border-radius:var(--r);overflow:hidden;background:var(--bg);aspect-ratio:3/4;cursor:pointer;position:relative}
+.gal-item img{width:100%;height:100%;object-fit:cover}
+.gal-item.ph{display:flex;align-items:center;justify-content:center;background:var(--white);box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.gal-item.ph::after{content:'🍌';font-size:32px;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(.9)}50%{opacity:1;transform:scale(1.1)}}
+.gal-empty{padding:60px 20px;text-align:center;color:var(--dim)}
+.gal-empty-icon{font-size:48px;margin-bottom:12px;opacity:.3}
+.gal-empty-text{font-size:14px;font-weight:500}
+
+/* ── BALANCE ── */
+.bal-hero{background:linear-gradient(135deg,var(--accent),#2d2d5e);padding:28px 16px;text-align:center;color:#fff}
+.bal-num{font-family:'Unbounded',sans-serif;font-size:52px;font-weight:900;color:var(--yellow);line-height:1;margin-bottom:6px}
+.bal-sub{font-size:14px;opacity:.75}
+.bal-cost{font-size:12px;opacity:.55;margin-top:8px}
+.pkg-wrap{padding:16px 16px 0}
+.pkg-card{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);cursor:pointer;transition:transform .1s;border:2px solid transparent}
+.pkg-card:active{transform:scale(.98)}
+.pkg-card.popular{border-color:var(--blue)}
+.pkg-icon{font-size:30px;flex-shrink:0}
+.pkg-info{flex:1}
+.pkg-title{font-size:15px;font-weight:700;margin-bottom:2px}
+.pkg-desc{font-size:12px;color:var(--dim)}
+.pkg-badge{font-size:10px;color:var(--blue);font-weight:700;background:rgba(91,94,244,.1);padding:2px 7px;border-radius:999px;margin-left:6px}
+.pkg-price{font-family:'Unbounded',sans-serif;font-size:16px;font-weight:900;color:var(--accent);flex-shrink:0}
+.contact-btn{width:100%;padding:15px;margin:4px 0;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-family:'Unbounded',sans-serif;font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 4px 12px rgba(26,26,46,.2)}
+
+/* ── LIGHTBOX ── */
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.lb.open{display:flex}
+.lb img{max-width:100%;max-height:75vh;border-radius:var(--r)}
+.lb-btns{display:flex;gap:10px;margin-top:16px}
+.lb-btn{padding:12px 24px;border-radius:999px;border:none;font-size:13px;font-weight:700;cursor:pointer}
+.lb-close{background:rgba(255,255,255,.15);color:#fff}
+.lb-save{background:var(--yellow);color:var(--accent)}
+
+/* ── TOAST ── */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-70px);background:var(--accent);color:#fff;border-radius:999px;padding:10px 20px;font-size:13px;font-weight:600;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:200;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:#1db954}
+.toast.err{background:#e53935}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+<div class="lb" id="lb">
+  <img id="lbImg" src="" alt="">
+  <div class="lb-btns">
+    <button class="lb-btn lb-close" onclick="closeLb()">Закрыть</button>
+    <button class="lb-btn lb-save" onclick="saveLb()">⬇ Сохранить</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logo">
+    <div class="hdr-icon">🍌</div>
+    <div class="hdr-name">NANO BANANA</div>
+  </div>
+  <div class="hdr-bal" onclick="goPage('balance')">💰 <span id="hdrBal">—</span> кред.</div>
+</div>
+
+<!-- ══ ГЛАВНАЯ ══ -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="hero-title">ИИ фото<br>с твоим <span>лицом</span></div>
+    <div class="hero-sub">Загрузи селфи — получи себя в любом образе.<br>Nano Banana сохранит твоё лицо.</div>
+    <div class="hero-btns">
+      <button class="hero-btn hero-btn-primary" onclick="goPage('styles')">Выбрать стиль →</button>
+      <button class="hero-btn hero-btn-secondary" onclick="startFreeGen()">Свой промпт</button>
+    </div>
+  </div>
+
+  <div class="cat-scroll" id="homeCats">
+    <div class="cat-pill active" onclick="filterCat('all',this)">Все</div>
+  </div>
+
+  <div id="homeState" class="state-loading">Загружаю стили...</div>
+  <div class="cards-grid" id="homeGrid" style="display:none"></div>
+</div>
+
+<!-- ══ СТИЛИ ══ -->
+<div class="page" id="page-styles">
+  <div id="stylesState" class="state-loading">Загружаю каталог...</div>
+  <div id="stylesContent" style="padding-bottom:16px"></div>
+</div>
+
+<!-- ══ СОЗДАТЬ ══ -->
+<div class="page" id="page-generate">
+  <div class="gen-wrap">
+
+    <!-- Переключатель: стиль / свой промпт -->
+    <div class="mode-switch">
+      <button class="mode-btn active" id="modeStyle" onclick="setMode('style')">✨ Из стиля</button>
+      <button class="mode-btn" id="modeFree"  onclick="setMode('free')">✏️ Свой промпт</button>
+    </div>
+
+    <!-- Режим: стиль -->
+    <div id="modeStyleBlock">
+      <div class="sel-card" id="selCard" style="display:none">
+        <img id="selCardImg" src="" alt="">
+        <div class="sel-card-info">
+          <div class="sel-card-title" id="selCardTitle"></div>
+          <div class="sel-card-desc"  id="selCardDesc"></div>
+          <button class="sel-card-change" onclick="goPage('styles')">Изменить стиль</button>
+        </div>
+      </div>
+      <div id="noCardHint" style="background:var(--white);border-radius:var(--r);padding:18px;text-align:center;color:var(--dim);font-size:14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+        Выбери стиль на вкладке <b>Стили</b> 👆
+      </div>
+    </div>
+
+    <!-- Режим: свой промпт -->
+    <div id="modeFreeBlock" style="display:none">
+      <div class="block">
+        <div class="block-label">Опиши что хочешь</div>
+        <textarea class="prompt-area" id="customPrompt"
+          placeholder="Например: realistic portrait of a girl in Tokyo street, neon lights, rain, cinematic 4K...
+
+Или на русском: девушка в кимоно на фоне горы Фудзи, рассвет, фотореализм"></textarea>
+        <div class="prompt-hint">
+          💡 Пиши на английском — лучше результат.<br>
+          Добавь: стиль (realistic, anime), освещение (cinematic, neon), качество (4K, highly detailed)
+        </div>
+      </div>
+    </div>
+
+    <!-- Загрузка фото -->
+    <div class="block">
+      <div class="block-label">Твоё фото (референс лица)</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" onchange="handleUpload(this)">
+        <div class="upload-zone-icon">📸</div>
+        <div class="upload-zone-text">Нажми чтобы загрузить фото</div>
+        <div class="upload-zone-hint">Чёткое фото лица — лучший результат</div>
+      </div>
+      <div class="upload-preview" id="uploadPreview">
+        <img id="previewImg" src="" alt="">
+        <button class="upload-del" onclick="delPhoto()">✕</button>
+      </div>
+    </div>
+
+    <!-- Формат -->
+    <div class="block">
+      <div class="block-label">Формат</div>
+      <div class="chips" id="aspectChips"></div>
+    </div>
+
+    <!-- Качество -->
+    <div class="block" style="margin-bottom:80px">
+      <div class="block-label">Качество</div>
+      <div class="chips" id="resChips"></div>
+    </div>
+
+  </div>
+
+  <div class="gen-btn-wrap">
+    <button class="gen-btn" id="genBtn" onclick="generate()">
+      <div class="spinner"></div>
+      <span class="btxt">✦ Сгенерировать</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══ МОИ ФОТО ══ -->
+<div class="page" id="page-gallery">
+  <div class="gal-empty" id="galEmpty">
+    <div class="gal-empty-icon">🖼</div>
+    <div class="gal-empty-text">Твои генерации появятся здесь</div>
+  </div>
+  <div class="gal-grid" id="galGrid" style="display:none"></div>
+</div>
+
+<!-- ══ БАЛАНС ══ -->
+<div class="page" id="page-balance">
+  <div class="bal-hero">
+    <div class="bal-num" id="balNum">—</div>
+    <div class="bal-sub">кредитов на счету</div>
+    <div class="bal-cost">1 генерация = 12 кредитов</div>
+  </div>
+  <div class="pkg-wrap">
+    <div style="font-size:16px;font-weight:700;margin-bottom:12px;padding-top:4px">Пополнить баланс</div>
+    <div class="pkg-card" onclick="openContact('Старт — 99₽, 120 кредитов')">
+      <div class="pkg-icon">⚡</div>
+      <div class="pkg-info"><div class="pkg-title">Старт</div><div class="pkg-desc">120 кредитов · 10 генераций</div></div>
+      <div class="pkg-price">99₽</div>
+    </div>
+    <div class="pkg-card popular" onclick="openContact('Базовый — 299₽, 420 кредитов')">
+      <div class="pkg-icon">🎯</div>
+      <div class="pkg-info"><div class="pkg-title">Базовый<span class="pkg-badge">Популярный</span></div><div class="pkg-desc">420 кредитов · 35 генераций</div></div>
+      <div class="pkg-price">299₽</div>
+    </div>
+    <div class="pkg-card" onclick="openContact('Про — 599₽, 960 кредитов')">
+      <div class="pkg-icon">🚀</div>
+      <div class="pkg-info"><div class="pkg-title">Про</div><div class="pkg-desc">960 кредитов · 80 генераций</div></div>
+      <div class="pkg-price">599₽</div>
+    </div>
+    <div class="pkg-card" onclick="openContact('VIP — 990₽, безлимит 30 дней')">
+      <div class="pkg-icon">👑</div>
+      <div class="pkg-info"><div class="pkg-title">VIP</div><div class="pkg-desc">Безлимит · 30 дней</div></div>
+      <div class="pkg-price">990₽</div>
+    </div>
+    <button class="contact-btn" onclick="openContact()">💬 Написать для оплаты</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bnav">
+  <button class="bnav-btn active" id="nav-home"     onclick="goPage('home')">    <div class="bnav-ico">🏠</div>Главная</button>
+  <button class="bnav-btn"        id="nav-styles"   onclick="goPage('styles')">  <div class="bnav-ico">✨</div>Стили</button>
+  <button class="bnav-btn"        id="nav-generate" onclick="goPage('generate')"><div class="bnav-ico">🎨</div>Создать</button>
+  <button class="bnav-btn"        id="nav-gallery"  onclick="goPage('gallery')"> <div class="bnav-ico">🖼</div>Мои фото</button>
+  <button class="bnav-btn"        id="nav-balance"  onclick="goPage('balance')"> <div class="bnav-ico">💰</div>Баланс</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+const API = "https://web-production-4634f.up.railway.app";
+
+// Встроенный каталог — работает ВСЕГДА, даже если сервер не ответил
+const BUILT_IN = {
+  categories:[
+    {id:"trends",   title:"🔥 Тренды",           order:1},
+    {id:"couples",  title:"💑 Пары и романтика",  order:2},
+    {id:"status",   title:"👑 Статус и лайфстайл",order:3},
+    {id:"family",   title:"👨‍👩‍👧 Семья",             order:4},
+    {id:"styles",   title:"🎭 Образы и стили",    order:5},
+    {id:"holidays", title:"🎉 Праздники",         order:6},
+    {id:"tools",    title:"🛠 Инструменты",       order:7},
+  ],
+  cards:[
+    {id:"bbq_couple",    category:"trends",   order:1,  title:"Отдых у мангала",       short:"Расслабленный стиль",   emoji:"🔥", img:"img/ref_01.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Young couple relaxing near BBQ grill, private luxury house backyard, casual black hoodie and grey sweatpants, sunglasses, holding Corona beer, summer vibes, photorealistic cinematic 4K", aspect:"9:16", resolution:"2K"},
+    {id:"close_eyes",    category:"couples",  order:1,  title:"Близость",              short:"Крупный план лица",     emoji:"👁", img:"img/ref_02.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Extreme close-up portrait two faces side by side touching noses, pure black background, dramatic studio lighting, ultra detailed eyes, skin texture, photorealistic 4K intimate mood", aspect:"9:16", resolution:"2K"},
+    {id:"soldier",       category:"family",   order:1,  title:"Память поколений",      short:"Эмоциональный портрет", emoji:"🎖", img:"img/ref_03.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Military uniform portrait, man holding small child who holds old black and white soldier photograph, dramatic moody lighting, dark warm tones, emotional photorealistic cinematic 4K", aspect:"9:16", resolution:"2K"},
+    {id:"birthday_kid",  category:"holidays", order:1,  title:"День рождения",         short:"Студийный портрет",     emoji:"🎂", img:"img/ref_04.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Child blowing out birthday number candle on dark velvet cake, pure black background, dramatic side studio lighting, smoke trail from candle, cinematic close-up photorealistic 4K", aspect:"9:16", resolution:"2K"},
+    {id:"couple_bw",     category:"couples",  order:2,  title:"Пара ч/б заставка",     short:"На телефон",            emoji:"🖤", img:"img/ref_05.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Couple portrait, black and white photography, pure white studio background, man and woman smiling close together, clean minimal aesthetic, film grain texture, photorealistic 4K wallpaper", aspect:"9:16", resolution:"2K"},
+    {id:"birthday_woman",category:"holidays", order:2,  title:"С детства до сейчас",   short:"Творческий портрет",    emoji:"🎉", img:"img/ref_06.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Young woman in elegant black blazer holding small birthday cake with number candles, childhood photo projected as glowing halo circle on grey studio background, black and silver balloons, cinematic side lighting photorealistic 4K", aspect:"9:16", resolution:"2K"},
+    {id:"dad_princess",  category:"family",   order:2,  title:"Папа и принцесса",      short:"Семейный портрет",      emoji:"👸", img:"img/ref_07.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Young man in crisp white shirt placing sparkling diamond tiara crown on little girl in soft pink satin dress, white studio background, soft warm natural lighting, genuine smile, photorealistic editorial 4K", aspect:"9:16", resolution:"2K"},
+    {id:"luxury_dinner", category:"status",   order:1,  title:"Деловой ужин",          short:"Luxury lifestyle",      emoji:"🍷", img:"img/ref_08.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Two sophisticated businessmen at luxury fine dining restaurant, white linen tablecloth, holding premium cigars, professional waiter lighting cigar, dark moody upscale interior, expensive watches, cinematic low key lighting photorealistic 4K", aspect:"9:16", resolution:"2K"},
+    {id:"fsb_man",       category:"trends",   order:2,  title:"Задержание",            short:"Вирусный контент",      emoji:"💰", img:"img/ref_09.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Stylish young man smiling confidently standing next to matte black BMW XM, special forces officers in black FSB tactical uniforms behind, Louis Vuitton duffle bag stuffed with cash bundles on car hood, credit cards and iPhones spread out, cinematic photorealistic 4K", aspect:"9:16", resolution:"2K"},
+    {id:"fsb_woman",     category:"trends",   order:3,  title:"Богатая и опасная",     short:"Вирусный контент",      emoji:"👮‍♀️",img:"img/ref_10.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Stunning confident woman in sleek black catsuit smiling, flanked by two FSB special forces officers in full tactical gear, stacks of Russian ruble bills on wooden table, multiple credit cards, MacBook Pro, cinematic photorealistic 4K", aspect:"9:16", resolution:"2K"},
+    {id:"sea_couple",    category:"couples",  order:3,  title:"Романтика у моря",      short:"Чёрно-белое кино",      emoji:"🌊", img:"img/ref_11.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Romantic couple faces close together almost kissing, dramatic stormy sea beach background, seagulls flying, classic black and white film photography, wind blowing hair, shallow depth of field, cinematic 4K", aspect:"9:16", resolution:"2K"},
+    {id:"bmw_night",     category:"status",   order:2,  title:"Ночной город",          short:"Luxury lifestyle",      emoji:"🚗", img:"img/ref_12.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Young man leaning confidently against polished black BMW at night, grand illuminated classical palace building background, premium Armani tracksuit, white sneakers, wet cobblestone street reflections, moody cinematic lighting photorealistic 4K", aspect:"9:16", resolution:"2K"},
+    {id:"speeder",       category:"trends",   order:4,  title:"Камера на трассе",      short:"Вирусный контент",      emoji:"📸", img:"img/ref_13.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Speed camera aerial drone shot from above capturing black Toyota Land Cruiser on highway at 113 km/h, beautiful girl standing through open sunroof arms raised wind blowing hair tongue out, guy driving with sunglasses giving thumbs up, traffic camera overlay data, black and white cinematic 4K", aspect:"9:16", resolution:"2K"},
+    {id:"photobooth",    category:"couples",  order:4,  title:"Фотобудка пары",        short:"Трендовый формат",      emoji:"💑", img:"img/ref_14.jpg", prompt:"Use the face from the reference photo exactly, preserve all facial features. Couple photobooth strip collage, four black and white square frames 2x2: solo portrait smiling, solo looking away, couple laughing together, couple kissing, white background, film grain, classic photobooth aesthetic, photorealistic 4K", aspect:"1:1", resolution:"2K"},
+  ]
+};
+// ═══════════════════════════════════════════════
+
+if (window.vkBridge) vkBridge.send("VKWebAppInit");
+
+const S = {
+  uid: null, balance: null,
+  catalog: BUILT_IN,       // стартуем сразу со встроенным
+  activeCat: "all",
+  selected: null,
+  mode: "style",           // "style" | "free"
+  photo: null, photoUrl: null,
+  aspect: "9:16", res: "2K",
+  gallery: JSON.parse(localStorage.getItem("nb_vk3_gal") || "[]"),
+  generating: false,
+};
+
+const ASPECTS = ["9:16","1:1","4:5","3:4","16:9","4:3","2:3","21:9"];
+const RES     = ["1K","2K","4K"];
+
+// ── Init ──────────────────────────────────────────────
+async function init() {
+  // Сразу рендерим со встроенным каталогом
+  renderAll();
+  renderGallery();
+
+  // Получаем uid
+  try {
+    const d = await vkBridge.send("VKWebAppGetUserInfo");
+    S.uid = d.id;
+  } catch { S.uid = "u" + Math.random().toString(36).slice(2,9); }
+
+  loadBalance();
+
+  // Параллельно пробуем загрузить каталог с сервера
+  loadCatalogFromServer();
+}
+
+function renderAll() {
+  renderCatPills();
+  renderHomeCards(S.activeCat);
+  renderStylesPage();
+  renderChips();
+}
+
+// ── Balance ───────────────────────────────────────────
+async function loadBalance() {
+  try {
+    const r = await fetch(`${API}/balance?user_id=${S.uid}`, {signal: AbortSignal.timeout(8000)});
+    const d = await r.json();
+    S.balance = d.balance ?? 0;
+    document.getElementById("hdrBal").textContent = S.balance;
+    document.getElementById("balNum").textContent  = S.balance;
+  } catch {}
+}
+
+// ── Catalog from server ───────────────────────────────
+async function loadCatalogFromServer() {
+  try {
+    const r = await fetch(`${API}/catalog`, {signal: AbortSignal.timeout(10000)});
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.categories && d.cards && d.cards.length > 0) {
+      S.catalog = d;
+      renderAll();
+    }
+  } catch {}  // Тихо — встроенный каталог уже работает
+}
+
+// ── Render catalog pills ──────────────────────────────
+function renderCatPills() {
+  const el = document.getElementById("homeCats");
+  const cats = S.catalog.categories || [];
+  el.innerHTML = `<div class="cat-pill ${S.activeCat==='all'?'active':''}" onclick="filterCat('all',this)">Все</div>`
+    + cats.map(c => `<div class="cat-pill ${S.activeCat===c.id?'active':''}" onclick="filterCat('${c.id}',this)">${c.title}</div>`).join("");
+}
+
+function filterCat(catId, el) {
+  S.activeCat = catId;
+  document.querySelectorAll("#homeCats .cat-pill").forEach(p => p.classList.remove("active"));
+  el.classList.add("active");
+  renderHomeCards(catId);
+}
+
+function getCards(catId) {
+  const cards = S.catalog.cards || [];
+  return catId === "all" ? cards : cards.filter(c => c.category === catId);
+}
+
+function cardHTML(card) {
+  const data = JSON.stringify(card).replace(/"/g,"&quot;");
+  return `<div class="card" onclick='selectCard(${data})'>
+    <img class="card-img" src="${card.img}" alt="${card.title}" loading="lazy"
+         onerror="this.style.background='#e5e5ea';this.style.aspectRatio='3/4'">
+    <div class="card-emoji">${card.emoji}</div>
+    <div class="card-body">
+      <div class="card-title">${card.title}</div>
+      <div class="card-short">${card.short}</div>
+    </div>
+  </div>`;
+}
+
+function renderHomeCards(catId) {
+  const el    = document.getElementById("homeGrid");
+  const state = document.getElementById("homeState");
+  const cards = getCards(catId);
+  state.style.display = "none";
+  el.style.display    = "grid";
+  el.innerHTML        = cards.map(cardHTML).join("") || `<div style="grid-column:span 2;padding:30px;text-align:center;color:var(--dim)">Нет стилей в этой категории</div>`;
+}
+
+function renderStylesPage() {
+  const el    = document.getElementById("stylesContent");
+  const state = document.getElementById("stylesState");
+  const cats  = S.catalog.categories || [];
+  state.style.display = "none";
+  let html = "";
+  cats.forEach(cat => {
+    const cards = getCards(cat.id);
+    if (!cards.length) return;
+    html += `<div class="sec-wrap"><div class="sec-head"><div class="sec-title">${cat.title}</div></div></div>
+             <div class="cards-grid">${cards.map(cardHTML).join("")}</div>`;
+  });
+  el.innerHTML = html || `<div class="state-loading">Стили загружаются...</div>`;
+}
+
+// ── Select card → переход в Создать ──────────────────
+function selectCard(card) {
+  S.selected = card;
+  S.aspect   = card.aspect    || "9:16";
+  S.res      = card.resolution || "2K";
+
+  // Обновить блок выбранного стиля
+  document.getElementById("selCard").style.display    = "flex";
+  document.getElementById("noCardHint").style.display = "none";
+  document.getElementById("selCardImg").src           = card.img;
+  document.getElementById("selCardTitle").textContent = `${card.emoji} ${card.title}`;
+  document.getElementById("selCardDesc").textContent  = card.short;
+
+  setMode("style");
+  renderChips();
+  goPage("generate");
+  toast(`${card.emoji} ${card.title}`, "ok");
+}
+
+// Кнопка "Свой промпт" с главной
+function startFreeGen() {
+  setMode("free");
+  goPage("generate");
+}
+
+// ── Mode switch ───────────────────────────────────────
+function setMode(m) {
+  S.mode = m;
+  document.getElementById("modeStyle").classList.toggle("active", m==="style");
+  document.getElementById("modeFree").classList.toggle("active",  m==="free");
+  document.getElementById("modeStyleBlock").style.display = m==="style" ? "block" : "none";
+  document.getElementById("modeFreeBlock").style.display  = m==="free"  ? "block" : "none";
+}
+
+// ── Upload ────────────────────────────────────────────
+function handleUpload(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    S.photo = {dataUrl: e.target.result, file};
+    S.photoUrl = null;
+    document.getElementById("uploadZone").style.display    = "none";
+    document.getElementById("uploadPreview").style.display = "block";
+    document.getElementById("previewImg").src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function delPhoto() {
+  S.photo = null; S.photoUrl = null;
+  document.getElementById("uploadZone").style.display    = "block";
+  document.getElementById("uploadPreview").style.display = "none";
+  document.getElementById("fileInput").value = "";
+}
+
+// ── Chips ─────────────────────────────────────────────
+function renderChips() {
+  document.getElementById("aspectChips").innerHTML = ASPECTS.map(a =>
+    `<button class="chip ${a===S.aspect?'active':''}" onclick="setA('${a}')">${a}</button>`).join("");
+  document.getElementById("resChips").innerHTML = RES.map(r =>
+    `<button class="chip ${r===S.res?'active':''}" onclick="setR('${r}')">${r}</button>`).join("");
+}
+function setA(v){S.aspect=v;renderChips()}
+function setR(v){S.res=v;renderChips()}
+
+// ── Generate ──────────────────────────────────────────
+async function generate() {
+  if (S.generating) return;
+
+  // Определяем промпт
+  let prompt = "";
+  if (S.mode === "style") {
+    if (!S.selected) { toast("Выбери стиль на вкладке Стили", "err"); return; }
+    prompt = S.selected.prompt;
+  } else {
+    prompt = (document.getElementById("customPrompt").value || "").trim();
+    if (!prompt) { toast("✏️ Введи описание!", "err"); return; }
+  }
+
+  if (!S.photo) { toast("📸 Загрузи своё фото!", "err"); return; }
+  if (S.balance !== null && S.balance < 12) { toast("❌ Недостаточно кредитов", "err"); return; }
+
+  S.generating = true;
+  const btn = document.getElementById("genBtn");
+  btn.classList.add("loading"); btn.disabled = true;
+
+  const phId = Date.now();
+  addPh(phId); goPage("gallery");
+
+  try {
+    // Загрузить фото референса
+    if (!S.photoUrl) {
+      const blob = await (await fetch(S.photo.dataUrl)).blob();
+      const form = new FormData();
+      form.append("file", blob, "ref.jpg");
+      form.append("user_id", S.uid || "anon");
+      const ur = await fetch(`${API}/upload`, {method:"POST",body:form});
+      const ud = await ur.json();
+      if (ud.error) throw new Error(ud.error);
+      S.photoUrl = ud.fileUrl;
+    }
+
+    // Создать задачу
+    const gr = await fetch(`${API}/generate`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        user_id: S.uid, prompt,
+        model: "nano-banana-2",
+        aspect_ratio: S.aspect,
+        resolution: S.res,
+        image_input: [S.photoUrl],
+        card_id: S.selected?.id || "free",
+      })
+    });
+    const gd = await gr.json();
+    if (gd.error) throw new Error(gd.error);
+    if (!gd.taskId) throw new Error("Нет taskId");
+
+    // Опрашивать статус
+    for (let i = 0; i < 60; i++) {
+      await sleep(5000);
+      const sr = await fetch(`${API}/status?taskId=${gd.taskId}&user_id=${S.uid}&card_id=${S.selected?.id||"free"}`);
+      const sd = await sr.json();
+      if (sd.state === "success" && sd.imageUrl) {
+        if (sd.balance !== undefined) {
+          S.balance = sd.balance;
+          document.getElementById("hdrBal").textContent = sd.balance;
+          document.getElementById("balNum").textContent  = sd.balance;
+        }
+        replacePh(phId, sd.imageUrl, S.selected?.title || "Генерация");
+        toast("✦ Готово!", "ok");
+        try { vkBridge.send("VKWebAppTapticNotificationOccurred",{type:"success"}); } catch {}
+        return;
+      }
+      if (sd.state === "fail") throw new Error(sd.error || "Генерация не удалась");
+    }
+    throw new Error("Превышено время ожидания");
+
+  } catch(e) {
+    delPh(phId);
+    toast("❌ " + (e.message||"Ошибка"), "err");
+  } finally {
+    S.generating = false;
+    btn.classList.remove("loading"); btn.disabled = false;
+  }
+}
+
+// ── Gallery ───────────────────────────────────────────
+function addPh(id)  { S.gallery.unshift({id,ph:true}); renderGallery(); }
+function delPh(id)  { S.gallery=S.gallery.filter(g=>g.id!==id); renderGallery(); }
+function replacePh(id,url,title) {
+  const i=S.gallery.findIndex(g=>g.id===id);
+  if(i!==-1) S.gallery[i]={id,url,title,ts:Date.now()};
+  save(); renderGallery();
+}
+function save() { localStorage.setItem("nb_vk3_gal", JSON.stringify(S.gallery.filter(g=>!g.ph).slice(0,50))); }
+function renderGallery() {
+  const grid=document.getElementById("galGrid"), empty=document.getElementById("galEmpty");
+  if(!S.gallery.length){grid.style.display="none";empty.style.display="block";return}
+  empty.style.display="none"; grid.style.display="grid";
+  grid.innerHTML=S.gallery.map(g=>g.ph
+    ?`<div class="gal-item ph" id="ph_${g.id}"></div>`
+    :`<div class="gal-item" onclick="openLb('${g.url}')"><img src="${g.url}" loading="lazy"></div>`
+  ).join("");
+}
+
+// ── Lightbox ──────────────────────────────────────────
+let _u="";
+function openLb(url){_u=url;document.getElementById("lbImg").src=url;document.getElementById("lb").classList.add("open")}
+function closeLb(){document.getElementById("lb").classList.remove("open")}
+function saveLb(){const a=document.createElement("a");a.href=_u;a.download="nano-banana.jpg";a.target="_blank";a.click()}
+
+// ── Navigation ────────────────────────────────────────
+function goPage(name) {
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".bnav-btn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("page-"+name).classList.add("active");
+  const nav=document.getElementById("nav-"+name);
+  if(nav) nav.classList.add("active");
+  window.scrollTo(0,0);
+}
+
+// ── Contact ───────────────────────────────────────────
+function openContact(msg="") {
+  try {
+    vkBridge.send("VKWebAppOpenApp",{app_id:6,location:`im?sel=-238791027${msg?`&ref=${encodeURIComponent(msg)}`:""}`});
+  } catch { toast("Напиши в сообщество для оплаты","ok"); }
+}
+
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+let _tt;
+function toast(msg,type="") {
+  const el=document.getElementById("toast");
+  el.textContent=msg; el.className=`toast show ${type}`;
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove("show"),2800);
+}
+
+init();
+</script>
+</body>
+</html>
