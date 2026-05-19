@@ -152,8 +152,6 @@ def ok_secret():
 # ══════════════════════════════════════════════════════════════
 #  РОУТЫ
 # ══════════════════════════════════════════════════════════════
-import os as _os
-
 @app.route("/")
 def index(): return jsonify({"status":"ok","service":"Nano Banana API v2"})
 
@@ -162,7 +160,7 @@ def index(): return jsonify({"status":"ok","service":"Nano Banana API v2"})
 def serve_admin():
     """Отдать файл admin.html"""
     from flask import send_from_directory
-    base = _os.path.dirname(_os.path.abspath(__file__))
+    base = os.path.dirname(os.path.abspath(__file__))
     return send_from_directory(base, "admin.html")
 
 @app.route("/app")
@@ -171,15 +169,15 @@ def serve_admin():
 def serve_app():
     """Отдать файл index.html (мини-апп)"""
     from flask import send_from_directory
-    base = _os.path.dirname(_os.path.abspath(__file__))
+    base = os.path.dirname(os.path.abspath(__file__))
     return send_from_directory(base, "index.html")
 
 @app.route("/img/<path:filename>")
 def serve_img(filename):
     """Отдать картинки из папки img/"""
     from flask import send_from_directory
-    base = _os.path.dirname(_os.path.abspath(__file__))
-    return send_from_directory(_os.path.join(base, "img"), filename)
+    base = os.path.dirname(os.path.abspath(__file__))
+    return send_from_directory(os.path.join(base, "img"), filename)
 
 @app.route("/balance")
 def balance():
