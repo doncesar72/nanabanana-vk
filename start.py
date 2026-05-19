@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
-import threading, logging, os, time
+"""Запускает Flask + VK бот через subprocess"""
+import os, subprocess, sys, logging
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s — %(message)s")
 logger = logging.getLogger(__name__)
 
-def run_vk_bot():
-    time.sleep(5)
-    try:
-        import vk_bot
-        logger.info("Запускаю VK бота...")
-        vk_bot.main()
-    except Exception as e:
-        logger.error("VK бот упал: %s", e, exc_info=True)
+# Запускаем VK бота как отдельный процесс
+vk_proc = subprocess.Popen([sys.executable, "vk_bot.py"])
+logger.info("VK бот запущен (PID %d)", vk_proc.pid)
 
-t = threading.Thread(target=run_vk_bot, daemon=True, name="vk-bot")
-t.start()
-
+# Запускаем Flask в основном процессе
 import server as srv
 port = int(os.environ.get("PORT", 8080))
 logger.info("Flask на порту %d", port)
